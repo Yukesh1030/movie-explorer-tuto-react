@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "motion/react";
 
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import PageTransition from "./components/PageTransition";
 
 import Home from "./pages/Home";
@@ -94,6 +95,8 @@ function App() {
           favourites={favourites}
           toggleFavourite={toggleFavourite}
         />
+
+        <Footer />
       </div>
     </HashRouter>
   );
