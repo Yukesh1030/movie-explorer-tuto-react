@@ -1,9 +1,7 @@
-
 import { useEffect, useState } from "react";
 import { HashRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "motion/react";
 
-import { movies } from "./data/MovieData";
 import Navbar from "./components/Navbar";
 import PageTransition from "./components/PageTransition";
 

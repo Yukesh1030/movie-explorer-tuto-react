@@ -1,215 +1,236 @@
-
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
-import { Search, SlidersHorizontal, X, Film } from "lucide-react";
-
+import { Search, SlidersHorizontal, X, Sparkles } from "lucide-react";
 import { movies } from "../data/MovieData";
 import MovieGrid from "../components/MovieGrid";
+import MovieModal from "../components/MovieModal";
 
 function Explore({ favourites, onToggleFavourite }) {
-  const [search, setSearch] = useState("");
-  const [genre, setGenre] = useState("All");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryParam = searchParams.get("q") || "";
+  const categoryParam = searchParams.get("category") || "All";
+
+  const [search, setSearch] = useState(queryParam);
+  const [category, setCategory] = useState(categoryParam);
   const [sort, setSort] = useState("default");
-  const [year, setYear] = useState("All");
+  const [selectedMovie, setSelectedMovie] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Get unique genres
-  const genres = [
+  // Available categories
+  const categories = [
     "All",
-    ...new Set(movies.map((movie) => movie.genre)),
+    "Action",
+    "Sci-Fi",
+    "Drama",
+    "Adventure",
+    "Originals",
+    "Trending",
   ];
 
-  const years = [
-    "All",
-    ...new Set(movies.map((movie) => movie.year).sort((a, b) => b - a)),
-  ];
+  // Category selection handler (clicking active toggles back to All)
+  const handleCategoryClick = (cat) => {
+    const nextCat = category === cat ? "All" : cat;
+    setCategory(nextCat);
+    if (nextCat === "All") {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("category");
+      setSearchParams(newParams);
+    } else {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("category", nextCat);
+      setSearchParams(newParams);
+    }
+  };
 
-  // Filter and sort movies
+  // Filter & sort logic
   const filteredMovies = useMemo(() => {
     let result = [...movies];
 
-    // Search by title
+    // 1. Category / Genre filtering
+    if (category !== "All") {
+      const selected = category.toLowerCase();
+
+      if (selected === "trending") {
+        result = result.filter((m) => m.trending);
+      } else if (selected === "originals") {
+        result = result.filter((m) => m.isOriginal || m.category === "originals");
+      } else {
+        result = result.filter(
+          (m) =>
+            m.genre?.toLowerCase() === selected ||
+            m.category?.toLowerCase() === selected ||
+            m.tags?.some((t) => t.toLowerCase().includes(selected))
+        );
+      }
+    }
+
+    // 2. Search keyword filtering
     if (search.trim()) {
-      result = result.filter((movie) =>
-        movie.title.toLowerCase().includes(search.toLowerCase().trim())
+      const q = search.toLowerCase().trim();
+      result = result.filter(
+        (m) =>
+          m.title.toLowerCase().includes(q) ||
+          m.director.toLowerCase().includes(q) ||
+          m.genre?.toLowerCase().includes(q) ||
+          m.description?.toLowerCase().includes(q) ||
+          m.tags?.some((t) => t.toLowerCase().includes(q))
       );
     }
 
-    // Genre filtering
-    if (genre !== "All") {
-      result = result.filter((movie) => movie.genre === genre);
-    }
-
-    // Year filtering
-    if (year !== "All") {
-      result = result.filter((movie) => movie.year === Number(year));
-    }
-
-    // Sorting
+    // 3. Sorting
     if (sort === "rating") {
       result.sort((a, b) => b.rating - a.rating);
     } else if (sort === "newest") {
       result.sort((a, b) => b.year - a.year);
+    } else if (sort === "title") {
+      result.sort((a, b) => a.title.localeCompare(b.title));
     }
 
     return result;
-  }, [search, genre, year, sort]);
+  }, [search, category, sort]);
 
-  // Clear filters
   const clearFilters = () => {
     setSearch("");
-    setGenre("All");
-    setYear("All");
+    setCategory("All");
     setSort("default");
+    setSearchParams({});
   };
 
-  const hasFilters =
-    search !== "" ||
-    genre !== "All" ||
-    year !== "All" ||
-    sort !== "default";
+  const handleOpenModal = (movie) => {
+    setSelectedMovie(movie);
+    setIsModalOpen(true);
+  };
 
   return (
-    <main className="explore-page">
-
-      {/* PAGE HEADER */}
-
-      <section className="explore-header">
+    <main className="netflix-explore-page">
+      {/* Page Header */}
+      <section className="explore-hero-banner">
         <motion.div
+          className="explore-header-content"
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.5 }}
         >
-          <span className="section-eyebrow">
-            YOUR NEXT FAVORITE MOVIE
-          </span>
+          <div className="netflix-badge-pill">
+            <Sparkles size={14} />
+            <span>STACKLY CINEMA</span>
+          </div>
 
           <h1>
-            Explore <span>Movies</span>
+            Explore <span>Catalog</span>
           </h1>
 
           <p>
-            Discover incredible stories from every genre.
-            Find your next cinematic experience.
+            Browse award-winning STACKLY originals, blockbuster hits, and critically acclaimed cinematic masterpieces.
           </p>
         </motion.div>
       </section>
 
-      {/* SEARCH AND FILTERS */}
-
-      <section className="explore-controls">
-
-        <div className="search-wrapper">
-          <Search size={20} />
-
-          <input
-            type="text"
-            placeholder="Search movies by title..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
-          {search && (
-            <button onClick={() => setSearch("")}>
-              <X size={17} />
-            </button>
-          )}
-        </div>
-
-        <div className="filter-controls">
-
-          <div className="filter-group">
-            <SlidersHorizontal size={17} />
-
-            <select
-              value={genre}
-              onChange={(e) => setGenre(e.target.value)}
-            >
-              {genres.map((item) => (
-                <option key={item} value={item}>
-                  {item === "All" ? "All Genres" : item}
-                </option>
-              ))}
-            </select>
+      {/* Search & Filter Controls */}
+      <section className="explore-controls-wrapper">
+        <div className="explore-controls-bar">
+          {/* Search Box */}
+          <div className="netflix-search-input-box">
+            <Search size={20} className="search-icon-svg" />
+            <input
+              type="text"
+              placeholder="Search by title, director, or tags..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                const newParams = new URLSearchParams(searchParams);
+                if (e.target.value.trim()) {
+                  newParams.set("q", e.target.value);
+                } else {
+                  newParams.delete("q");
+                }
+                setSearchParams(newParams);
+              }}
+            />
+            {search && (
+              <button
+                className="clear-search-btn"
+                onClick={() => {
+                  setSearch("");
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.delete("q");
+                  setSearchParams(newParams);
+                }}
+                aria-label="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
 
-          <div className="filter-group">
+          {/* Sort Selector */}
+          <div className="netflix-sort-box">
+            <SlidersHorizontal size={18} />
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
+              aria-label="Sort movies"
             >
-              <option value="default">Default Order</option>
-              <option value="rating">Highest Rating</option>
-              <option value="newest">Newest First</option>
+              <option value="default">Sort by: Recommended</option>
+              <option value="rating">Highest Rated</option>
+              <option value="newest">Release Year</option>
+              <option value="title">Alphabetical (A-Z)</option>
             </select>
           </div>
+        </div>
 
-          <div className="filter-group">
-            <select
-              value={year}
-              onChange={(e) => setYear(e.target.value)}
-            >
-              {years.map((item) => (
-                <option key={item} value={item}>
-                  {item === "All" ? "All Years" : item}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {hasFilters && (
+        {/* Category Filter Pills */}
+        <div className="genre-pills-row" role="tablist" aria-label="Filter by category">
+          {categories.map((cat) => (
             <button
-              className="clear-filters-btn"
-              onClick={clearFilters}
+              key={cat}
+              className={`genre-pill-btn ${category === cat ? "active" : ""}`}
+              onClick={() => handleCategoryClick(cat)}
+              role="tab"
+              aria-selected={category === cat}
             >
-              <X size={16} />
-              Clear Filters
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Results Counter & Reset */}
+        <div className="explore-results-summary">
+          <span>
+            Showing <strong>{filteredMovies.length}</strong> {filteredMovies.length === 1 ? "title" : "titles"}
+            {category !== "All" && <span> in <strong>{category}</strong></span>}
+          </span>
+
+          {(search || category !== "All" || sort !== "default") && (
+            <button className="reset-filter-btn" onClick={clearFilters}>
+              Reset Filters
             </button>
           )}
-
         </div>
       </section>
 
-      {/* MOVIE RESULTS */}
-
-      <section className="explore-results">
-
-        <div className="results-heading">
-          <h2>All Movies</h2>
-
-          <span>
-            {filteredMovies.length} movies found
-          </span>
-        </div>
-
-        {filteredMovies.length > 0 ? (
-          <MovieGrid
-            movies={filteredMovies}
-            favourites={favourites}
-            onToggleFavourite={onToggleFavourite}
-          />
-        ) : (
-          <motion.div
-            className="explore-empty"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Film size={45} />
-            <h3>No Movies Found</h3>
-            <p>
-              Try changing your search or filter selections.
-            </p>
-
-            <button
-              className="primary-btn"
-              onClick={clearFilters}
-            >
-              Clear All Filters
-            </button>
-          </motion.div>
-        )}
-
+      {/* Movie Grid */}
+      <section className="explore-grid-section">
+        <MovieGrid
+          movies={filteredMovies}
+          favourites={favourites}
+          onToggleFavourite={onToggleFavourite}
+          onSelectMovie={handleOpenModal}
+          emptyMessage="No movies found matching your selected category and search."
+        />
       </section>
 
+      {/* Modal */}
+      <MovieModal
+        movie={selectedMovie}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        isFavourite={favourites.includes(selectedMovie?.id)}
+        onToggleFavourite={onToggleFavourite}
+        allMovies={movies}
+        onSelectSimilar={handleOpenModal}
+      />
     </main>
   );
 }

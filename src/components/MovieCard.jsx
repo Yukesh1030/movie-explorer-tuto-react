@@ -1,84 +1,111 @@
-
 import { motion } from "motion/react";
-import { Heart, Star, Play } from "lucide-react";
+import { Heart, Star, Play, Info } from "lucide-react";
 
-function MovieCard({ movie, isFavourite, onToggleFavourite }) {
+function MovieCard({ movie, isFavourite, onToggleFavourite, onSelectMovie }) {
   return (
     <motion.article
-      className="movie-card"
+      className="netflix-grid-card"
       whileHover={{
         y: -8,
-        scale: 1.025,
+        scale: 1.04,
       }}
       transition={{
-        duration: 0.3,
+        duration: 0.28,
         ease: "easeOut",
       }}
+      onClick={() => onSelectMovie && onSelectMovie(movie)}
     >
       {/* Movie Poster */}
-      <div className="movie-poster-wrapper">
+      <div className="netflix-poster-box">
         <img
           src={movie.poster}
           alt={`${movie.title} poster`}
-          className="movie-poster"
+          className="netflix-grid-poster"
           loading="lazy"
         />
 
-        {/* Rating */}
-        <div className="movie-rating">
-          <Star size={14} fill="currentColor" />
-          <span>{movie.rating}</span>
-        </div>
+        {/* STACKLY Badge or Rating Tag */}
+        {movie.isOriginal ? (
+          <div className="netflix-card-n-badge">
+            <span className="stackly-card-logo">STACKLY</span>
+          </div>
+        ) : (
+          <div className="netflix-card-rating">
+            <Star size={13} fill="#E50914" color="#E50914" />
+            <span>{movie.rating}</span>
+          </div>
+        )}
 
-        {/* Favourite Button */}
-
+        {/* Favourite Button (Sleek Squircle / Rounded-MD) */}
         <motion.button
-        className={`favourite-btn ${isFavourite ? "active" : ""}`}
-        onClick={() => onToggleFavourite(movie.id)}
-        whileHover={{ scale: 1.15 }}
-        whileTap={{ scale: 0.75, rotate: -15 }}
-        transition={{ type: "spring", stiffness: 400, damping: 12 }}
-        aria-label={
-            isFavourite
-            ? "Remove from favourites"
-            : "Add to favourites"
-        }
+          className={`netflix-card-fav-btn ${isFavourite ? "active" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavourite(movie.id);
+          }}
+          whileHover={{ scale: 1.12 }}
+          whileTap={{ scale: 0.88 }}
+          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+          aria-label={
+            isFavourite ? "Remove from My List" : "Add to My List"
+          }
+          title={isFavourite ? "In My List" : "Add to My List"}
         >
-        <motion.div
-            animate={{
-            scale: isFavourite ? [1, 1.35, 1] : 1,
-            }}
-            transition={{ duration: 0.3 }}
-        >
-            <Heart
-            size={19}
+          <Heart
+            size={18}
             fill={isFavourite ? "currentColor" : "none"}
-            />
-        </motion.div>
+          />
         </motion.button>
 
+        {/* Hover Quick Action Overlay */}
+        <div className="netflix-card-overlay">
+          <div className="card-overlay-actions">
+            <motion.button
+              className="card-action-btn play-rect-btn"
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onSelectMovie) onSelectMovie(movie);
+              }}
+              title="Play"
+              aria-label="Play"
+            >
+              <Play size={16} fill="currentColor" />
+            </motion.button>
 
-        {/* Hover Overlay */}
-        <div className="movie-overlay">
-          <motion.button
-            className="quick-view-btn"
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Play size={16} fill="currentColor" />
-            Quick View
-          </motion.button>
+            <motion.button
+              className="card-action-btn info-rect-btn"
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onSelectMovie) onSelectMovie(movie);
+              }}
+              title="Details"
+              aria-label="Details"
+            >
+              <Info size={16} />
+            </motion.button>
+          </div>
         </div>
       </div>
 
       {/* Movie Information */}
-      <div className="movie-info">
-        <h3>{movie.title}</h3>
+      <div className="netflix-card-meta">
+        <div className="card-top-line">
+          <span className="card-match-score">{movie.match || "98% Match"}</span>
+          <span className="card-maturity-badge">{movie.maturity || "16+"}</span>
+        </div>
 
-        <div className="movie-meta">
+        <h3 className="netflix-card-title">{movie.title}</h3>
+
+        <div className="card-bottom-line">
           <span>{movie.year}</span>
-          <span className="meta-dot">•</span>
-          <span>{movie.genre}</span>
+          <span className="netflix-dot">•</span>
+          <span>{movie.duration}</span>
+          <span className="netflix-dot">•</span>
+          <span className="card-genre-name">{movie.genre}</span>
         </div>
       </div>
     </motion.article>
